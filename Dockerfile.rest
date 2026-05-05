@@ -1,0 +1,9 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir flask influxdb
+
+COPY rest_server.py /app/rest_server.py
+
+CMD ["python", "rest_server.py"]

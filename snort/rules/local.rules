@@ -1,0 +1,54 @@
+# ============================
+# LOCAL SNORT RULES
+# IoT Protocol Flood Detection
+# ============================
+
+# ============================
+# MQTT FLOOD DETECTION
+# Port: TCP 1883
+# Detect repeated MQTT publish traffic to sensor/temp
+# ============================
+alert tcp any any -> any 1883 (
+    msg:"MQTT Flood Detected";
+    content:"sensor/temp";
+    detection_filter:track by_src,count 15,seconds 5;
+    sid:1000004;
+    rev:3;
+)
+
+# ============================
+# REST FLOOD DETECTION
+# Port: TCP 5000
+# Detect repeated TCP connection attempts to REST API
+# ============================
+alert tcp any any -> any 5000 (
+    msg:"REST Flood Detected";
+    flags:S;
+    detection_filter:track by_src,count 15,seconds 5;
+    sid:1000005;
+    rev:8;
+)
+
+# ============================
+# COAP FLOOD DETECTION
+# Port: UDP 5683
+# Detect repeated UDP packets to CoAP server
+# ============================
+alert udp any any -> any 5683 (
+    msg:"CoAP Flood Detected";
+    detection_filter:track by_src,count 15,seconds 5;
+    sid:1000006;
+    rev:3;
+)
+
+# ============================
+# GRPC FLOOD DETECTION
+# Port: TCP 50051
+# gRPC uses HTTP/2 and binary framing, so detection is port/rate based
+# ============================
+alert tcp any any -> any 50051 (
+    msg:"gRPC Flood Detected";
+    detection_filter:track by_src,count 15,seconds 5;
+    sid:1000007;
+    rev:5;
+)
