@@ -1,0 +1,8 @@
+flask
+influxdb
+requests
+paho-mqtt
+aiocoap
+grpcio
+grpcio-tools
+protobuf

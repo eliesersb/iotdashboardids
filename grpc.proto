@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package grpc;
+
+service SensorService {
+  rpc SendSensorData (SensorRequest) returns (SensorReply);
+}
+
+message SensorRequest {
+  string device_id = 1;
+  float temperature = 2;
+  float humidity = 3;
+  int64 timestamp = 4;
+  float rtt_ms = 5;
+}
+
+message SensorReply {
+  string status = 1;
+  string message = 2;
+}

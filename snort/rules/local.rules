@@ -1,0 +1,136 @@
+# ============================
+# LOCAL SNORT RULES
+# IoT Protocol Flood Detection
+# Final Notification Version
+# ============================
+#
+# Purpose:
+# - Application Flood rules use "Application Flood" in msg
+# - hping3 / transport-layer rules use "hping3" in msg
+# - Django notification can differentiate attack_type from msg
+#
+# Classification in Django:
+# - msg contains "hping3" or "SYN" -> Network Flood / hping3
+# - msg contains "Application Flood" -> Application Flood / DoS
+# ============================
+
+
+# ============================
+# MQTT APPLICATION FLOOD DETECTION
+# Port: TCP 1883
+# Detect repeated MQTT publish traffic to sensor/temp
+# Used for mqtt_flood.py application-layer attack scenario
+# ============================
+alert tcp any any -> any 1883 (
+    msg:"MQTT Application Flood Detected";
+    content:"sensor/temp";
+    detection_filter:track by_src,count 15,seconds 5;
+    sid:1000004;
+    rev:4;
+)
+
+
+# ============================
+# MQTT TCP SYN FLOOD / HPING3 DETECTION
+# Port: TCP 1883
+# Detect repeated TCP SYN packets to MQTT broker
+# Used for hping3 network/transport-layer attack scenario
+# ============================
+alert tcp any any -> any 1883 (
+    msg:"MQTT TCP SYN Flood / hping3 Detected";
+    flags:S;
+    detection_filter:track by_src,count 15,seconds 5;
+    sid:1000014;
+    rev:2;
+)
+
+
+# ============================
+# REST APPLICATION FLOOD DETECTION
+# Port: TCP 5000
+# Detect repeated HTTP requests to REST API
+# Used for rest_flood.py application-layer attack scenario
+# ============================
+alert tcp any any -> any 5000 (
+    msg:"REST Application Flood Detected";
+    flow:to_server,established;
+    content:"/sensor/temp";
+    detection_filter:track by_src,count 15,seconds 5;
+    sid:1000005;
+    rev:9;
+)
+
+
+# ============================
+# REST TCP SYN FLOOD / HPING3 DETECTION
+# Port: TCP 5000
+# Detect repeated TCP SYN packets to REST API
+# Used for hping3 network/transport-layer attack scenario
+# ============================
+alert tcp any any -> any 5000 (
+    msg:"REST TCP SYN Flood / hping3 Detected";
+    flags:S;
+    detection_filter:track by_src,count 15,seconds 5;
+    sid:1000015;
+    rev:1;
+)
+
+
+# ============================
+# COAP APPLICATION FLOOD DETECTION
+# Port: UDP 5683
+# Detect repeated CoAP application requests containing sensor/temp
+# Used for coap_flood.py application-layer attack scenario
+# ============================
+alert udp any any -> any 5683 (
+    msg:"CoAP Application Flood Detected";
+    content:"sensor";
+    content:"temp";
+    detection_filter:track by_src,count 15,seconds 5;
+    sid:1000006;
+    rev:4;
+)
+
+
+# ============================
+# COAP UDP FLOOD / HPING3 DETECTION
+# Port: UDP 5683
+# Detect repeated UDP packets to CoAP server
+# Used for hping3 UDP flood scenario
+# ============================
+alert udp any any -> any 5683 (
+    msg:"CoAP UDP Flood / hping3 Detected";
+    detection_filter:track by_src,count 30,seconds 5;
+    sid:1000016;
+    rev:1;
+)
+
+
+# ============================
+# GRPC APPLICATION FLOOD DETECTION
+# Port: TCP 50051
+# gRPC uses HTTP/2 and binary framing, so payload matching is difficult.
+# This rule detects high-rate TCP traffic to gRPC service port.
+# Used for grpc_flood.py application-layer attack scenario.
+# ============================
+alert tcp any any -> any 50051 (
+    msg:"gRPC Application Flood Detected";
+    detection_filter:track by_src,count 15,seconds 5;
+    sid:1000007;
+    rev:8;
+)
+
+
+# ============================
+# GRPC TCP SYN FLOOD / HPING3 DETECTION
+# Port: TCP 50051
+# Detect repeated TCP SYN packets to gRPC server
+# Used for hping3 network/transport-layer attack scenario
+# ============================
+alert tcp any any -> any 50051 (
+    msg:"gRPC TCP SYN Flood / hping3 Detected";
+    flags:S;
+    detection_filter:track by_src,count 15,seconds 5;
+    sid:1000017;
+    rev:1;
+)

@@ -1,0 +1,896 @@
+{% extends 'iotdashboard/base.html' %}
+{% block title %}Alert{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    /* =========================================================
+       1. PAGE HEADER
+       ========================================================= */
+    .page-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+        color: #6b7280;
+        font-size: 17px;
+        margin-bottom: 24px;
+    }
+
+    .alert-meta {
+        font-size: 13px;
+        color: #64748b;
+        margin-top: 8px;
+        margin-bottom: 14px;
+    }
+
+    /* =========================================================
+       2. FILTER
+       ========================================================= */
+    .filter-container {
+        margin: 16px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .filter-container label,
+    .threat-filter label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .filter-container select,
+    .threat-filter select {
+        padding: 7px 12px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        background: white;
+        font-size: 14px;
+    }
+
+    /* =========================================================
+       3. SUMMARY CARDS
+       ========================================================= */
+    .card-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+
+    .stat-card {
+        background: white;
+        color: #111827;
+        border-radius: 12px;
+        padding: 14px 16px;
+        min-height: 88px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+        border-left: 5px solid transparent;
+    }
+
+    .stat-card h4 {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: #6b7280;
+    }
+
+    .stat-card p {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+        color: #111827;
+    }
+
+    .card-blue { border-left-color: #2563eb; }
+    .card-red { border-left-color: #dc2626; }
+    .card-green { border-left-color: #059669; }
+    .card-purple { border-left-color: #7c3aed; }
+    .card-orange { border-left-color: #f59e0b; }
+
+    /* =========================================================
+       4. GENERAL BOX / CARD COMPONENT
+       ========================================================= */
+    .section-box,
+    .chart-box {
+        background: white;
+        border-radius: 12px;
+        padding: 16px 18px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    }
+
+    .section-title,
+    .chart-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    .section-subtitle,
+    .chart-subtitle {
+        font-size: 15px;
+        color: #6b7280;
+        margin-bottom: 18px;
+    }
+
+    .chart-wrapper {
+        position: relative;
+        height: 185px;
+    }
+
+    /* =========================================================
+       5. PROTOCOL ALERT CARDS
+       ========================================================= */
+    .protocol-section {
+        margin-bottom: 24px;
+    }
+
+    .protocol-card-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+
+    .protocol-card {
+        background: white;
+        border-radius: 12px;
+        padding: 14px 16px;
+        min-height: 82px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+        border-left: 5px solid transparent;
+    }
+
+    .protocol-card h4 {
+        font-size: 13px;
+        font-weight: 600;
+        color: #6b7280;
+        margin-bottom: 8px;
+    }
+
+    .protocol-card p {
+        font-size: 24px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    /* =========================================================
+       6. THREAT ACTIVITY PER PROTOCOL
+       ========================================================= */
+    .threat-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 4px 0 12px 0;
+        flex-wrap: wrap;
+    }
+
+    .threat-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    .threat-filter {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .timeline-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+
+    .timeline-grid .chart-box {
+        padding: 14px 16px;
+    }
+
+    .timeline-grid .chart-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .timeline-grid .chart-subtitle {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 8px;
+    }
+
+    /* =========================================================
+       7. TABLE - RECENT ALERT LOGS
+       ========================================================= */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 10px;
+    }
+
+    thead {
+        background: #111827;
+        color: white;
+    }
+
+    th,
+    td {
+        text-align: left;
+        padding: 14px 12px;
+        border: 1px solid #e5e7eb;
+        font-size: 14px;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #f9fafb;
+    }
+
+    /* =========================================================
+       8. BADGES
+       ========================================================= */
+    .badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .badge-low {
+        background: #E8F7E6;
+        color: #2E7D32;
+    }
+
+    .badge-medium {
+        background: #FFF6DB;
+        color: #B78103;
+    }
+
+    .badge-high {
+        background: #FFEAD9;
+        color: #C25B1D;
+    }
+
+    .badge-critical {
+        background: #FDECEC;
+        color: #C62828;
+    }
+
+    .badge-active {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .badge-resolved {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    /* =========================================================
+       9. RESPONSIVE
+       ========================================================= */
+    @media (max-width: 1024px) {
+        .card-grid,
+        .protocol-card-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .timeline-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-wrapper {
+            height: 210px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .card-grid,
+        .protocol-card-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stat-card,
+        .protocol-card {
+            min-height: 82px;
+        }
+
+        .stat-card p,
+        .protocol-card p {
+            font-size: 22px;
+        }
+
+        .section-title,
+        .chart-title {
+            font-size: 20px;
+        }
+
+        .threat-title {
+            font-size: 20px;
+        }
+    }
+
+.alert-source-note {
+    margin: 12px 0 16px 0;
+    padding: 14px 18px;
+    border-left: 5px solid #dc2626;
+    background: #fff7f7;
+    color: #1f2937;
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1.6;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05);
+}
+
+.alert-source-note b {
+    color: #b91c1c;
+}
+
+
+.alert-level-note {
+    margin: 8px 0 14px 0;
+    padding: 10px 14px;
+    background: #ffffff;
+    border-left: 5px solid #64748b;
+    border-radius: 8px;
+    color: #334155;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.level-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    margin: 0 4px 0 10px;
+}
+
+.level-dot.low {
+    background: #22c55e;
+}
+
+.level-dot.medium {
+    background: #f59e0b;
+}
+
+.level-dot.high {
+    background: #dc2626;
+}
+
+
+</style>
+
+<div class="page-title">Alert Monitoring 🚨</div>
+<div class="page-subtitle">
+    Ringkasan serangan yang berhasil dideteksi oleh Snort IDS pada protokol MQTT, REST API, CoAP, dan gRPC.
+
+<div class="alert-source-note">
+    <b>Keterangan:</b> halaman ini menampilkan serangan yang berhasil dideteksi oleh <b>Snort IDS</b>, termasuk pengujian flood dan hping3. Data pada halaman ini berasal dari log alert IDS, bukan dari request aplikasi normal.
+</div>
+
+</div>
+
+<div class="filter-container">
+    <label for="alertRange">Time Range:</label>
+
+    <select id="alertRange">
+        <option value="5m" selected>5 Minutes</option>
+        <option value="15m">15 Minutes</option>
+        <option value="30m">30 Minutes</option>
+        <option value="1h">1 Hour</option>
+        <option value="24h">24 Hours</option>
+    </select>
+</div>
+
+<div class="alert-meta">
+    Last updated: <span id="lastUpdated">-</span>
+</div>
+
+<!-- =========================================================
+     SUMMARY CARDS
+     ========================================================= -->
+<div class="card-grid">
+    <div class="stat-card card-blue">
+        <h4>Total IDS Alerts</h4>
+        <p id="totalAlerts">-</p>
+    </div>
+
+    <div class="stat-card card-red">
+        <h4>Flood/DoS IDS Alerts</h4>
+        <p id="detectedDosAlerts">-</p>
+    </div>
+
+    <div class="stat-card card-green">
+        <h4>Most Targeted Protocol</h4>
+        <p id="mostTargetedProtocol">-</p>
+    </div>
+
+    <div class="stat-card card-purple">
+        <h4>Peak Threat Time</h4>
+        <p id="mostPeakThreatTime">-</p>
+    </div>
+</div>
+
+<!-- =========================================================
+     PROTOCOL ALERT CARDS
+     ========================================================= -->
+<section class="protocol-section">
+    <div class="section-title">IDS Alerts by Protocol</div>
+    <div class="section-subtitle">
+        Menampilkan jumlah alert IDS yang terdeteksi pada masing-masing protokol dalam rentang waktu yang dipilih.
+    </div>
+
+    <div class="protocol-card-grid">
+        <div class="protocol-card card-blue">
+            <h4>MQTT Alerts</h4>
+            <p id="mqttAlertCount">-</p>
+        </div>
+
+        <div class="protocol-card card-green">
+            <h4>REST API Alerts</h4>
+            <p id="restAlertCount">-</p>
+        </div>
+
+        <div class="protocol-card card-orange">
+            <h4>CoAP Alerts</h4>
+            <p id="coapAlertCount">-</p>
+        </div>
+
+        <div class="protocol-card card-red">
+            <h4>gRPC Alerts</h4>
+            <p id="grpcAlertCount">-</p>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     THREAT ACTIVITY PER PROTOCOL
+     ========================================================= -->
+<div class="threat-header-row">
+    <div class="threat-title">IDS Alert Activity per Protocol</div>
+
+<div class="alert-level-note">
+    <b>Intensity Level:</b>
+    <span class="level-dot low"></span> Low = 1–500 alert/menit,
+    <span class="level-dot medium"></span> Medium = 501–1000 alert/menit,
+    <span class="level-dot high"></span> High = >1000 alert/menit.
+</div>
+
+    <div class="threat-filter">
+        <label for="threatActivityFilter">Filter Intensity Level:</label>
+
+        <select id="threatActivityFilter">
+            <option value="All" selected>All Activity</option>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+        </select>
+    </div>
+</div>
+
+<section class="timeline-grid">
+    <div class="chart-box">
+        <div class="chart-title">MQTT IDS Alert Activity</div>
+        <div class="chart-subtitle">
+            Menampilkan jumlah alert IDS MQTT per menit. Warna titik menunjukkan intensitas alert berdasarkan jumlah alert per menit.
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="mqttThreatActivityChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-box">
+        <div class="chart-title">REST API IDS Alert Activity</div>
+        <div class="chart-subtitle">
+            Menampilkan jumlah alert IDS REST API per menit. Warna titik menunjukkan intensitas alert berdasarkan jumlah alert per menit.
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="apiThreatActivityChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-box">
+        <div class="chart-title">CoAP IDS Alert Activity</div>
+        <div class="chart-subtitle">
+            Menampilkan jumlah alert IDS CoAP per menit. Warna titik menunjukkan intensitas alert berdasarkan jumlah alert per menit.
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="coapSecurityEventsChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-box">
+        <div class="chart-title">gRPC IDS Alert Activity</div>
+        <div class="chart-subtitle">
+            Menampilkan jumlah alert IDS gRPC per menit. Warna titik menunjukkan intensitas alert berdasarkan jumlah alert per menit.
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="grpcThreatMonitoringChart"></canvas>
+        </div>
+    </div>
+</section>
+
+<!-- =========================================================
+     RECENT ALERT LOGS
+     ========================================================= -->
+<section class="section-box">
+
+
+
+    <div class="section-title">Recent IDS Alert Logs</div>
+    <div class="section-subtitle">
+        Daftar alert terbaru yang berhasil dideteksi oleh Snort IDS.
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Protocol</th>
+                <th>Detected Attack</th>
+                <th>Severity</th>
+                <th>Source IP</th>
+                <th>Target Port</th>
+                <th>Detection Status</th>
+            </tr>
+        </thead>
+        <tbody id="alertLogsBody"></tbody>
+    </table>
+</section>
+
+
+
+<script>
+    function safeSetText(id, value) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.textContent = value ?? "-";
+        }
+    }
+
+    function getAlertLevelByCount(count) {
+        const value = Number(count || 0);
+
+        if (value > 1000) return "High";
+        if (value > 500) return "Medium";
+        if (value > 0) return "Low";
+
+        return "None";
+    }
+
+    function getActivityColor(activity) {
+        if (activity === "High") return "#dc2626";
+        if (activity === "Medium") return "#f59e0b";
+        if (activity === "Low") return "#22c55e";
+        return "#cbd5e1";
+    }
+
+    function getSeverityBadge(severity) {
+        if (severity === "High") {
+            return `<span class="badge badge-high">High</span>`;
+        } else if (severity === "Medium") {
+            return `<span class="badge badge-medium">Medium</span>`;
+        } else if (severity === "Low") {
+            return `<span class="badge badge-low">Low</span>`;
+        } else {
+            return `<span class="badge badge-critical">${severity || "-"}</span>`;
+        }
+    }
+
+    function getDetectionStatusBadge(status) {
+        return `<span class="badge badge-active">${status || "Detected"}</span>`;
+    }
+
+    function getRangeMinutes(rangeValue) {
+        if (rangeValue === "5m") return 5;
+        if (rangeValue === "15m") return 15;
+        if (rangeValue === "30m") return 30;
+        if (rangeValue === "1h") return 60;
+        return 5;
+    }
+
+    function formatMinuteLabel(dateObj) {
+        return dateObj.toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false
+        });
+    }
+
+    function generateMinuteLabels(rangeValue) {
+        const minutes = getRangeMinutes(rangeValue);
+        const now = new Date();
+        now.setSeconds(0, 0);
+
+        const labels = [];
+
+        for (let i = minutes; i >= 0; i--) {
+            const d = new Date(now.getTime() - i * 60 * 1000);
+            labels.push(formatMinuteLabel(d));
+        }
+
+        return labels;
+    }
+
+    function createAlertLineChart(canvasId, protocolName) {
+        const ctx = document.getElementById(canvasId);
+
+        if (!ctx) {
+            console.warn("Canvas tidak ditemukan:", canvasId);
+            return null;
+        }
+
+        return new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: [],
+                datasets: [{
+                    label: `${protocolName} IDS Alerts`,
+                    data: [],
+                    borderColor: "#64748b",
+                    backgroundColor: "rgba(100, 116, 139, 0.08)",
+                    pointBackgroundColor: [],
+                    pointBorderColor: [],
+                    pointRadius: [],
+                    pointHoverRadius: 7,
+                    borderWidth: 2,
+                    tension: 0.25,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.y || 0;
+                                const level = getAlertLevelByCount(value);
+
+                                if (value === 0) {
+                                    return "No alert";
+                                }
+
+                                return `${level}: ${value} alerts/min`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: "Time"
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: "Alert Count per Minute"
+                        },
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function addMinuteToLabel(label, delta) {
+        if (!label || !label.includes(":")) return label;
+
+        const parts = label.split(":");
+        let hour = parseInt(parts[0], 10);
+        let minute = parseInt(parts[1], 10);
+
+        if (Number.isNaN(hour) || Number.isNaN(minute)) return label;
+
+        minute += delta;
+
+        if (minute < 0) {
+            minute = 59;
+            hour = (hour - 1 + 24) % 24;
+        } else if (minute >= 60) {
+            minute = 0;
+            hour = (hour + 1) % 24;
+        }
+
+        return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    }
+
+    function updateAlertLineChart(chart, points, selectedActivity, rangeValue) {
+        if (!chart) return;
+
+        let safePoints = points || [];
+
+        safePoints = safePoints.map(point => {
+            const value = Number(point.y || 0);
+            return {
+                x: point.x,
+                y: value,
+                activity: getAlertLevelByCount(value)
+            };
+        });
+
+        if (selectedActivity && selectedActivity !== "All") {
+            safePoints = safePoints.filter(point => point.activity === selectedActivity);
+        }
+
+        let labels = [];
+        let dataValues = [];
+        let levels = [];
+
+        if (safePoints.length === 0) {
+            labels = ["No Alert"];
+            dataValues = [0];
+            levels = ["None"];
+        } else if (safePoints.length === 1) {
+            const p = safePoints[0];
+
+            labels = [
+                addMinuteToLabel(p.x, -1),
+                p.x,
+                addMinuteToLabel(p.x, 1)
+            ];
+
+            dataValues = [0, p.y, 0];
+            levels = ["None", p.activity, "None"];
+        } else {
+            labels = safePoints.map(point => point.x);
+            dataValues = safePoints.map(point => point.y);
+            levels = safePoints.map(point => point.activity);
+        }
+
+        const pointColors = levels.map(level => getActivityColor(level));
+        const pointRadius = dataValues.map(value => value > 0 ? 6 : 2);
+
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = dataValues;
+        chart.data.datasets[0].pointBackgroundColor = pointColors;
+        chart.data.datasets[0].pointBorderColor = pointColors;
+        chart.data.datasets[0].pointRadius = pointRadius;
+        chart.data.datasets[0].borderColor = "#64748b";
+        chart.data.datasets[0].backgroundColor = "rgba(100, 116, 139, 0.08)";
+
+        chart.update();
+    }
+
+    const mqttChart = createAlertLineChart("mqttThreatActivityChart", "MQTT");
+    const restChart = createAlertLineChart("apiThreatActivityChart", "REST API");
+    const coapChart = createAlertLineChart("coapSecurityEventsChart", "CoAP");
+    const grpcChart = createAlertLineChart("grpcThreatMonitoringChart", "gRPC");
+
+    let isAlertDataLoading = false;
+    let lastAlertData = null;
+
+
+    function loadAlertData() {
+        if (isAlertDataLoading) {
+            console.log("Alert data request masih berjalan, skip refresh sementara.");
+            return;
+        }
+
+        isAlertDataLoading = true;
+
+        const rangeSelect = document.getElementById("alertRange");
+        const activitySelect = document.getElementById("threatActivityFilter");
+
+        const selectedRange = rangeSelect ? rangeSelect.value : "5m";
+        const selectedActivity = activitySelect ? activitySelect.value : "All";
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        fetch(`/alert_data/?range=${selectedRange}`, {
+            signal: controller.signal
+        })
+            .then(response => response.json())
+            .then(data => {
+                clearTimeout(timeoutId);
+                lastAlertData = data;
+                const summary = data.summary_cards || {};
+                const protocolItems = data.alerts_by_protocol?.items || {};
+                const activities = data.threat_activities || {};
+
+                safeSetText("totalAlerts", summary.total_alerts || 0);
+                safeSetText("detectedDosAlerts", summary.detected_dos_alerts || 0);
+                safeSetText("mostTargetedProtocol", summary.most_targeted_protocol || "-");
+                safeSetText("mostPeakThreatTime", summary.most_peak_threat_time || "-");
+                safeSetText("lastUpdated", data.last_updated || new Date().toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                }));
+
+                safeSetText("mqttAlertCount", protocolItems["MQTT"] || 0);
+                safeSetText("restAlertCount", protocolItems["REST API"] || 0);
+                safeSetText("coapAlertCount", protocolItems["CoAP"] || 0);
+                safeSetText("grpcAlertCount", protocolItems["gRPC"] || 0);
+
+                updateAlertLineChart(mqttChart, activities["MQTT"]?.points || [], selectedActivity, selectedRange);
+                updateAlertLineChart(restChart, activities["REST API"]?.points || [], selectedActivity, selectedRange);
+                updateAlertLineChart(coapChart, activities["CoAP"]?.points || [], selectedActivity, selectedRange);
+                updateAlertLineChart(grpcChart, activities["gRPC"]?.points || [], selectedActivity, selectedRange);
+
+                const tableBody = document.getElementById("alertLogsBody");
+
+                if (tableBody) {
+                    tableBody.innerHTML = "";
+
+                    const logs = data.alert_logs || [];
+
+                    if (logs.length === 0) {
+                        tableBody.innerHTML = `
+                            <tr>
+                                <td colspan="7" style="text-align:center; color:#64748b;">
+                                    Belum ada alert IDS pada rentang waktu yang dipilih.
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        logs.forEach(item => {
+                            tableBody.innerHTML += `
+                                <tr>
+                                    <td>${item.time || "-"}</td>
+                                    <td>${item.protocol || "-"}</td>
+                                    <td>${item.alert_type || "-"}</td>
+                                    <td>${getSeverityBadge(item.severity)}</td>
+                                    <td>${item.source_ip || "-"}</td>
+                                    <td>${item.destination_port || "-"}</td>
+                                    <td>${getDetectionStatusBadge(item.status)}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                }
+            })
+            .catch(error => {
+                if (error.name === "AbortError") {
+                    console.warn("Request alert_data timeout, refresh berikutnya akan mencoba lagi.");
+                } else {
+                    console.error("Error loading alert data:", error);
+                }
+            })
+            .finally(() => {
+                clearTimeout(timeoutId);
+                isAlertDataLoading = false;
+            });
+    }
+
+    const rangeSelect = document.getElementById("alertRange");
+    if (rangeSelect) {
+        rangeSelect.value = "5m";
+        rangeSelect.addEventListener("change", loadAlertData);
+    }
+
+    const activitySelect = document.getElementById("threatActivityFilter");
+    if (activitySelect) {
+        activitySelect.addEventListener("change", loadAlertData);
+    }
+
+    loadAlertData();
+    setInterval(loadAlertData, 10000);
+</script>
+
+{% endblock %}

@@ -1,0 +1,76 @@
+# ============================
+# Python cache
+# ============================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+
+# ============================
+# Virtual environment
+# ============================
+venv/
+.venv/
+env/
+ENV/
+
+# ============================
+# Environment / secrets
+# ============================
+.env
+.env.*
+!.env.example
+
+# ============================
+# Django
+# ============================
+db.sqlite3
+*.sqlite3
+django/db.sqlite3
+django/*.sqlite3
+django/media/
+django/staticfiles/
+
+# ============================
+# Logs and temporary files
+# ============================
+*.log
+*.bak
+*.bak*
+*.tmp
+*.swp
+*.swo
+
+# ============================
+# Snort logs / packet capture
+# ============================
+snort/log/*
+*.pcap
+*.pcapng
+
+# ============================
+# InfluxDB / Docker volume data
+# ============================
+influxdb/data/
+influxdb/
+docker-data/
+
+# ============================
+# Editor / OS files
+# ============================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ============================
+# Build / archive files
+# ============================
+dist/
+build/
+node_modules/
+*.zip
+*.tar
+*.tar.gz

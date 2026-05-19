@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}IoT Dashboard{% endblock %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+        body {
+            background-color: #f5f6fa;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .layout-wrapper {
+            min-height: 100vh;
+        }
+
+        .custom-sidebar {
+            width: 250px;
+            min-height: 100vh;
+            background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
+            color: white;
+            padding: 24px 18px;
+            box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-main {
+            flex: 1;
+        }
+
+        .sidebar-bottom {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 32px;
+            min-height: 100vh;
+        }
+
+        .custom-sidebar h4 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 18px;
+        }
+
+        .sidebar-divider {
+            border: 0;
+            height: 1px;
+            background: rgba(255,255,255,0.15);
+            margin-bottom: 20px;
+        }
+
+        .custom-sidebar .nav-link {
+            color: #e5e7eb;
+            font-size: 20px;
+            font-weight: 500;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease-in-out;
+            display: block;
+        }
+
+        .custom-sidebar .nav-link:hover {
+            background-color: rgba(255,255,255,0.08);
+            color: #ffffff;
+            padding-left: 20px;
+        }
+
+        .custom-sidebar .nav-link.active-link {
+            background-color: rgba(255,255,255,0.12);
+            color: #ffffff !important;
+            font-weight: 700;
+            border-left: 4px solid #facc15;
+            padding-left: 12px;
+        }
+
+        .danger-link {
+            color: #fca5a5 !important;
+        }
+
+        .danger-link:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fecaca !important;
+        }
+
+        .danger-link.active-link {
+            background: rgba(239, 68, 68, 0.18) !important;
+            color: #fecaca !important;
+            border-left: 4px solid #ef4444 !important;
+        }
+
+        @media (max-width: 768px) {
+            .custom-sidebar {
+                position: static;
+                width: 100%;
+                height: auto;
+                min-height: auto;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+       .alert-toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .alert-toast {
+            min-width: 280px;
+            max-width: 360px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            color: #ffffff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+            animation: slideInRight 0.3s ease;
+            font-size: 14px;
+        }
+
+        .alert-toast-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .alert-toast-message {
+            font-size: 13px;
+            opacity: 0.95;
+        }
+
+        .alert-toast-medium {
+            background-color: #f59e0b;
+        }
+
+        .alert-toast-high {
+            background-color: #dc2626;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+    </style>
+
+<style>
+/* Disable old small threat activity toast notification */
+.alert-toast,
+.alert-toast.show,
+.alert-toast-title {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+</style>
+
+</head>
+<body>
+
+<div class="layout-wrapper">
+
+   <!-- Sidebar -->
+<div class="custom-sidebar">
+
+    <div class="sidebar-main">
+        <h4>IoT Dashboard</h4>
+        <hr class="sidebar-divider">
+
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/' %}active-link{% endif %}" href="{% url 'home' %}">
+                    Home
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/monitoring/' %}active-link{% endif %}" href="{% url 'monitoring' %}">
+                    Monitoring
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/alert/' %}active-link{% endif %}" href="{% url 'alert' %}">
+                    Alert
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/nodes/' %}active-link{% endif %}" href="{% url 'nodes' %}">
+                    Nodes
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link {% if request.path == '/summary/' %}active-link{% endif %}" href="{% url 'summary' %}">
+                    Summary
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="sidebar-bottom">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link danger-link {% if request.path == '/maintenance/' %}active-link{% endif %}" href="{% url 'maintenance' %}">
+                    Maintenance
+                </a>
+            </li>
+        </ul>
+    </div>
+
+</div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+</div>
+
+    <div id="globalAlertToastContainer" class="alert-toast-container"></div>
+
+<script>
+    const GLOBAL_ALERT_RANGE = "5m";
+    const GLOBAL_POPUP_COOLDOWN_MS = 300000; // 5 menit
+
+    function getActivityRank(activity) {
+        const ranks = {
+            "No Activity": 0,
+            "Low": 1,
+            "Medium": 2,
+            "High": 3
+        };
+
+        return ranks[activity] || 0;
+    }
+
+    function showGlobalAlertToast(protocol, activityLevel, alertCount, timeLabel) {
+        const container = document.getElementById("globalAlertToastContainer");
+
+        if (!container) {
+            return;
+        }
+
+        const activityClass = activityLevel.toLowerCase();
+
+        const toast = document.createElement("div");
+        toast.className = `alert-toast alert-toast-${activityClass}`;
+
+        toast.innerHTML = `
+            <div class="alert-toast-title">${activityLevel} Threat Activity Detected</div>
+            <div class="alert-toast-message">
+                ${protocol} reached <b>${activityLevel}</b> activity with ${alertCount} alerts/min.
+                <br>
+                Time: ${timeLabel}
+            </div>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, 5000);
+    }
+
+    function shouldShowGlobalToast(protocol, activityLevel) {
+        const cooldownKey = `global-toast-${protocol}-${activityLevel}`;
+        const now = Date.now();
+
+        const lastShown = Number(localStorage.getItem(cooldownKey) || 0);
+
+        if (now - lastShown < GLOBAL_POPUP_COOLDOWN_MS) {
+            return false;
+        }
+
+        localStorage.setItem(cooldownKey, String(now));
+        return true;
+    }
+
+    function checkGlobalThreatNotifications(threatActivities) {
+        if (!threatActivities) {
+            return;
+        }
+
+        const protocols = ["MQTT", "REST API", "CoAP", "gRPC"];
+
+        protocols.forEach(protocol => {
+            const protocolData = threatActivities[protocol];
+
+            if (!protocolData || !protocolData.points) {
+                return;
+            }
+
+            let highestActivity = "No Activity";
+            let highestAlertCount = 0;
+            let highestTime = "-";
+
+            protocolData.points.forEach(point => {
+                const activity = point.activity || "No Activity";
+                const alertCount = point.y || 0;
+
+                if (getActivityRank(activity) > getActivityRank(highestActivity)) {
+                    highestActivity = activity;
+                    highestAlertCount = alertCount;
+                    highestTime = point.x || "-";
+                }
+            });
+
+            // Pop-up hanya untuk Medium dan High
+            if (!["Medium", "High"].includes(highestActivity)) {
+                return;
+            }
+
+            if (shouldShowGlobalToast(protocol, highestActivity)) {
+                showGlobalAlertToast(
+                    protocol,
+                    highestActivity,
+                    highestAlertCount,
+                    highestTime
+                );
+            }
+        });
+    }
+
+    function loadGlobalAlertNotification() {
+        fetch(`/alert_data/?range=${GLOBAL_ALERT_RANGE}&notify=0`)
+            .then(response => response.json())
+            .then(data => {
+                checkGlobalThreatNotifications(data.threat_activities);
+            })
+            .catch(error => {
+                console.error("Error loading global alert notification:", error);
+            });
+    }
+
+    loadGlobalAlertNotification();
+    setInterval(loadGlobalAlertNotification, 10000);
+</script>
+
+
+<!-- FINAL GLOBAL IDS NOTIFICATION POPUP -->
+<style>
+    #ids-notification-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 420px;
+    }
+
+    .ids-notification {
+        border-radius: 12px;
+        padding: 14px 16px;
+        color: #ffffff;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+        font-family: Arial, sans-serif;
+        animation: idsSlideInRight 0.35s ease-out;
+        border-left: 6px solid rgba(255, 255, 255, 0.75);
+    }
+
+    .ids-notification-critical {
+        background: linear-gradient(135deg, #7f1d1d, #dc2626);
+    }
+
+    .ids-notification-high {
+        background: linear-gradient(135deg, #9a3412, #ea580c);
+    }
+
+    .ids-notification-medium {
+        background: linear-gradient(135deg, #92400e, #f59e0b);
+    }
+
+    .ids-notification-low {
+        background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    }
+
+    .ids-notification-title {
+        font-size: 15px;
+        font-weight: bold;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .ids-notification-body {
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .ids-notification-close {
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    @keyframes idsSlideInRight {
+        from {
+            transform: translateX(120%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes idsFadeOut {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(120%);
+        }
+    }
+</style>
+
+<div id="ids-notification-container"></div>
+
+<script>
+    const IDS_NOTIFICATION_API = "/notification_data/";
+    const IDS_POPUP_POLLING_INTERVAL = 5000;
+    const IDS_POPUP_COOLDOWN = 30000;
+    const IDS_POPUP_DURATION = 8000;
+
+    const idsRank = {
+        "Low": 1,
+        "Medium": 2,
+        "High": 3,
+        "Critical": 4
+    };
+
+    function idsKey(value) {
+        return String(value || "unknown")
+            .toLowerCase()
+            .replace(/\s+/g, "_")
+            .replace(/[^a-z0-9_]/g, "");
+    }
+
+    function idsShouldShow(notification) {
+        const protocolKey = idsKey(notification.protocol);
+        const storageKey = `ids_popup_${protocolKey}`;
+
+        const now = Date.now();
+        const currentLevel = notification.notification_level || "Low";
+        const currentRank = idsRank[currentLevel] || 0;
+
+        const raw = localStorage.getItem(storageKey);
+
+        if (!raw) {
+            localStorage.setItem(storageKey, JSON.stringify({
+                time: now,
+                level: currentLevel
+            }));
+            return true;
+        }
+
+        try {
+            const old = JSON.parse(raw);
+            const oldTime = old.time || 0;
+            const oldLevel = old.level || "Low";
+            const oldRank = idsRank[oldLevel] || 0;
+
+            const cooldownExpired = now - oldTime >= IDS_POPUP_COOLDOWN;
+            const escalated = currentRank > oldRank;
+
+            if (cooldownExpired || escalated) {
+                localStorage.setItem(storageKey, JSON.stringify({
+                    time: now,
+                    level: currentLevel
+                }));
+                return true;
+            }
+
+            return false;
+        } catch (e) {
+            localStorage.setItem(storageKey, JSON.stringify({
+                time: now,
+                level: currentLevel
+            }));
+            return true;
+        }
+    }
+
+    function idsClass(level) {
+        level = String(level || "Low").toLowerCase();
+
+        if (level === "critical") return "ids-notification-critical";
+        if (level === "high") return "ids-notification-high";
+        if (level === "medium") return "ids-notification-medium";
+        return "ids-notification-low";
+    }
+
+    function idsIcon(level) {
+        if (level === "Critical" || level === "High") return "🚨";
+        if (level === "Medium") return "⚠️";
+        return "ℹ️";
+    }
+
+    function idsShow(notification) {
+        const container = document.getElementById("ids-notification-container");
+        if (!container) return;
+
+        const level = notification.notification_level || "Low";
+
+        const element = document.createElement("div");
+        element.className = `ids-notification ${idsClass(level)}`;
+
+        element.innerHTML = `
+            <div class="ids-notification-title">
+                <span>${idsIcon(level)} IDS Notification - ${level}</span>
+                <span class="ids-notification-close">&times;</span>
+            </div>
+            <div class="ids-notification-body">
+                <div><strong>Protocol:</strong> ${notification.protocol || "Unknown"}</div>
+                <div><strong>Attack Type:</strong> ${notification.attack_type || "IDS Alert"}</div>
+                <div><strong>Severity:</strong> ${notification.severity || "Unknown"}</div>
+                <div><strong>Alert Intensity:</strong> ${notification.alert_intensity || "Unknown"}</div>
+                <div><strong>Total Alerts:</strong> ${notification.alert_count || 0} alerts in the last ${notification.time_window || "1 minute"}</div>
+                <div><strong>Source IP:</strong> ${notification.source_ip || "Unknown"}</div>
+                <div><strong>Action:</strong> Check Alert page for details</div>
+            </div>
+        `;
+
+        element.querySelector(".ids-notification-close").addEventListener("click", function () {
+            idsRemove(element);
+        });
+
+        container.appendChild(element);
+
+        setTimeout(function () {
+            idsRemove(element);
+        }, IDS_POPUP_DURATION);
+    }
+
+    function idsRemove(element) {
+        if (!element) return;
+
+        element.style.animation = "idsFadeOut 0.35s ease-out forwards";
+
+        setTimeout(function () {
+            if (element.parentNode) {
+                element.parentNode.removeChild(element);
+            }
+        }, 350);
+    }
+
+    async function idsFetch() {
+        try {
+            const response = await fetch(IDS_NOTIFICATION_API, {
+                method: "GET",
+                cache: "no-store"
+            });
+
+            if (!response.ok) return;
+
+            const data = await response.json();
+            const notifications = data.notifications || [];
+
+            notifications.forEach(function (notification) {
+                if (idsShouldShow(notification)) {
+                    idsShow(notification);
+                }
+            });
+        } catch (error) {
+            console.error("IDS notification error:", error);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        idsFetch();
+        setInterval(idsFetch, IDS_POPUP_POLLING_INTERVAL);
+    });
+</script>
+
+
+<script>
+/* Remove old small threat activity popup notification */
+(function removeOldThreatPopup() {
+    function cleanOldThreatPopup() {
+        document.querySelectorAll("body *").forEach(function(el) {
+            const txt = (el.innerText || "").trim();
+            if (
+                txt.includes("Threat Activity Detected") &&
+                !txt.includes("IDS Notification")
+            ) {
+                let target = el;
+                for (let i = 0; i < 4; i++) {
+                    if (target.parentElement && target.parentElement !== document.body) {
+                        target = target.parentElement;
+                    }
+                }
+                target.remove();
+            }
+        });
+    }
+
+    setInterval(cleanOldThreatPopup, 300);
+    document.addEventListener("DOMContentLoaded", cleanOldThreatPopup);
+})();
+</script>
+
+</body>
+</html>
+    
+   

@@ -1,0 +1,488 @@
+{% extends 'iotdashboard/base.html' %}
+{% block title %}Nodes{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js">
+document.addEventListener("DOMContentLoaded", forceUnderAttackBadgeRed);
+setInterval(forceUnderAttackBadgeRed, 1000);
+</script>
+
+<style>
+    .page-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+        color: #6b7280;
+        font-size: 17px;
+        margin-bottom: 24px;
+    }
+
+    .card-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        border-radius: 14px;
+        padding: 22px;
+        background: white;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+        border-left: 6px solid transparent;
+    }
+
+    .stat-card h4 {
+        font-size: 16px;
+        color: #6b7280;
+        margin-bottom: 10px;
+    }
+
+    .stat-card p {
+        font-size: 28px;
+        font-weight: bold;
+        color: #111827;
+        margin: 0;
+    }
+
+    .card-blue { border-left-color: #2563eb; }
+    .card-green { border-left-color: #059669; }
+    .card-red { border-left-color: #dc2626; }
+    .card-yellow { border-left-color: #f59e0b; }
+
+    .section-box {
+        background: white;
+        border-radius: 14px;
+        padding: 24px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    }
+
+    .section-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 6px;
+    }
+
+    .section-subtitle {
+        color: #6b7280;
+        margin-bottom: 20px;
+    }
+    .nodes-meta {
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 16px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    thead {
+        background: #111827;
+        color: white;
+    }
+
+    th, td {
+        padding: 14px 12px;
+        border: 1px solid #e5e7eb;
+        font-size: 14px;
+        text-align: left;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #f9fafb;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .badge-active {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .badge-inactive {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .badge-alert {
+        background-color: #dc2626 !important;
+        color: #ffffff !important;
+    }
+
+    .badge-warning {
+        background: #fef3c7;
+        color: #b45309;
+    }
+
+    .badge-type {
+        background: #eef2ff;
+        color: #4338ca;
+    }
+
+    .chart-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-top: 24px;
+    }
+
+    .chart-box {
+        background: white;
+        border-radius: 16px;
+        padding: 22px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    }
+
+    .chart-box h3 {
+        font-size: 22px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    .chart-subtitle {
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 16px;
+    }
+
+    .chart-wrapper {
+        position: relative;
+        height: 300px;
+    }
+
+@media (max-width: 992px) {
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+    @media (max-width: 1024px) {
+        .card-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 640px) {
+        .card-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+.nodes-note {
+    margin: 12px 0 16px 0;
+    padding: 14px 18px;
+    border-left: 5px solid #10b981;
+    background: #f0fdf4;
+    color: #1f2937;
+    border-radius: 10px;
+    font-size: 15px;
+    line-height: 1.6;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05);
+}
+
+.nodes-note b {
+    color: #047857;
+}
+
+</style>
+
+<div class="page-title">Network Nodes 📡</div>
+<div class="page-subtitle">
+    Daftar entitas jaringan yang terpantau dalam sistem monitoring IoT, termasuk sensor, client, service, dan sumber trafik lainnya.
+</div>
+
+<div class="nodes-meta">
+    Data ditampilkan berdasarkan aktivitas 5 menit terakhir dan diperbarui otomatis setiap 5 detik. | Last updated: <span id="lastUpdated">-</span>
+</div>
+
+<!-- Cards -->
+<div class="card-grid">
+    <div class="stat-card card-blue">
+        <h4>Total Nodes</h4>
+        <p id="totalNodes">-</p>
+    </div>
+    <div class="stat-card card-green">
+        <h4>Active Nodes</h4>
+        <p id="activeNodes">-</p>
+    </div>
+    <div class="stat-card card-red">
+        <h4>Inactive Nodes</h4>
+        <p id="inactiveNodes">-</p>
+    </div>
+    <div class="stat-card card-yellow">
+        <h4>Alert Nodes</h4>
+        <p id="alertNodes">-</p>
+    </div>
+</div>
+
+<!-- Table -->
+<section class="section-box">
+    <div class="section-title">Monitored Nodes</div>
+    <div class="section-subtitle">
+        Menampilkan daftar node yang aktif berkomunikasi dalam jaringan berdasarkan protokol yang digunakan.
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Entity</th>
+                <th>Type</th>
+                <th>Protocol</th>
+                <th>Status</th>
+                <th>Last Seen</th>
+                <th>Avg Temp</th>
+                <th>Avg Humidity</th>
+                <th>Alerts</th>
+            </tr>
+        </thead>
+        <tbody id="nodesTableBody"></tbody>
+    </table>
+</section>
+
+<section class="chart-grid">
+    <div class="chart-box">
+        <h3>Temperature Trend</h3>
+        <p class="chart-subtitle">
+            Menampilkan rata-rata temperature telemetry setiap interval 10 detik untuk masing-masing protokol.
+        </p>
+        <div class="chart-wrapper">
+            <canvas id="temperatureChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-box">
+        <h3>Humidity Trend</h3>
+        <p class="chart-subtitle">
+            Menampilkan rata-rata humidity telemetry setiap interval 10 detik untuk masing-masing protokol.
+        </p>
+        <div class="chart-wrapper">
+            <canvas id="humidityChart"></canvas>
+        </div>
+    </div>
+</section>
+
+<script>
+
+function forceUnderAttackBadgeRed() {
+    document.querySelectorAll(".badge").forEach(badge => {
+        const text = (badge.textContent || "").trim().toLowerCase();
+
+        if (text === "under attack" || text === "alert") {
+            badge.textContent = "Under Attack";
+            badge.classList.remove("badge-warning", "badge-active", "badge-normal");
+            badge.classList.add("badge-alert");
+            badge.style.backgroundColor = "#dc2626";
+            badge.style.color = "#ffffff";
+        }
+    });
+}
+
+    function getNodeStatusBadge(status) {
+        if (status === "Active") {
+            return `<span class="badge badge-active">${status}</span>`;
+        } else if (status === "Inactive") {
+            return `<span class="badge badge-inactive">${status}</span>`;
+        } else if (status === "Alert") {
+            return `<span class="badge badge-alert">${status}</span>`;
+        } else {
+            if (status === "Under Attack" || status === "Alert") {
+            return `<span class="badge badge-alert">Under Attack</span>`;
+        }
+        return `<span class="badge badge-warning">${status}</span>`;
+        }
+    }
+
+    const temperatureCtx = document.getElementById("temperatureChart");
+    const humidityCtx = document.getElementById("humidityChart");
+
+    const protocolColors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
+
+    const temperatureChart = new Chart(temperatureCtx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: "MQTT",
+                    data: [],
+                    borderColor: "#3b82f6",
+                    backgroundColor: "rgba(59, 130, 246, 0.12)",
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    spanGaps: true
+                },
+                {
+                    label: "REST API",
+                    data: [],
+                    borderColor: "#10b981",
+                    backgroundColor: "rgba(16, 185, 129, 0.12)",
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    spanGaps: true
+                },
+                {
+                    label: "CoAP",
+                    data: [],
+                    borderColor: "#f59e0b",
+                    backgroundColor: "rgba(245, 158, 11, 0.12)",
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    spanGaps: true
+                },
+                {
+                    label: "gRPC",
+                    data: [],
+                    borderColor: "#ef4444",
+                    backgroundColor: "rgba(239, 68, 68, 0.12)",
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    spanGaps: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: {
+                        display: true,
+                        text: "Temperature (°C)"
+                    }
+                }
+            }
+        }
+    });
+
+const humidityChart = new Chart(humidityCtx, {
+    type: "line",
+    data: {
+        labels: [],
+        datasets: [
+            {
+                label: "MQTT",
+                data: [],
+                borderColor: "#3b82f6",
+                backgroundColor: "rgba(59, 130, 246, 0.12)",
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 3,
+                spanGaps: true
+            },
+            {
+                label: "REST API",
+                data: [],
+                borderColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.12)",
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 3,
+                spanGaps: true
+            },
+            {
+                label: "CoAP",
+                data: [],
+                borderColor: "#f59e0b",
+                backgroundColor: "rgba(245, 158, 11, 0.12)",
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 3,
+                spanGaps: true
+            },
+            {
+                label: "gRPC",
+                data: [],
+                borderColor: "#ef4444",
+                backgroundColor: "rgba(239, 68, 68, 0.12)",
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 3,
+                spanGaps: true
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: false,
+                title: {
+                    display: true,
+                    text: "Humidity (%)"
+                }
+            }
+        }
+    }
+});
+
+    function loadNodesData() {
+        fetch("/nodes_data/")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("totalNodes").textContent = data.summary_cards.total_nodes;
+                document.getElementById("activeNodes").textContent = data.summary_cards.active_nodes;
+                document.getElementById("inactiveNodes").textContent = data.summary_cards.inactive_nodes;
+                document.getElementById("alertNodes").textContent = data.summary_cards.alert_nodes;
+                document.getElementById("lastUpdated").textContent = data.last_updated;
+                const tableBody = document.getElementById("nodesTableBody");
+                tableBody.innerHTML = "";
+
+                data.node_list.forEach(item => {
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td>${item.entity}</td>
+                            <td>${item.type}</td>
+                            <td>${item.protocol}</td>
+                            <td>${getNodeStatusBadge(item.status)}</td>
+                            <td>${item.last_seen}</td>
+                            <td>${item.avg_temperature}</td>
+                            <td>${item.avg_humidity}</td>
+                            <td>${item.alerts}</td>
+                        </tr>
+                    `;
+                });
+                
+                temperatureChart.data.labels = data.telemetry_trend.labels;
+                temperatureChart.data.datasets[0].data = data.telemetry_trend.temperature.mqtt;
+                temperatureChart.data.datasets[1].data = data.telemetry_trend.temperature.rest;
+                temperatureChart.data.datasets[2].data = data.telemetry_trend.temperature.coap;
+                temperatureChart.data.datasets[3].data = data.telemetry_trend.temperature.grpc;
+                temperatureChart.update();
+
+                humidityChart.data.labels = data.telemetry_trend.labels;
+                humidityChart.data.datasets[0].data = data.telemetry_trend.humidity.mqtt;
+                humidityChart.data.datasets[1].data = data.telemetry_trend.humidity.rest;
+                humidityChart.data.datasets[2].data = data.telemetry_trend.humidity.coap;
+                humidityChart.data.datasets[3].data = data.telemetry_trend.humidity.grpc;
+                humidityChart.update();     
+            })
+
+            .catch(error => console.error("Error loading nodes data:", error));
+    }
+
+    loadNodesData();
+    setInterval(loadNodesData, 5000);
+</script>
+
+{% endblock %}

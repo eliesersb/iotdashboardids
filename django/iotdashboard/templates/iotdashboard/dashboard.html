@@ -1,0 +1,68 @@
+{% extends 'iotdashboard/base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+     <h1>Grafik Sensor</h1>
+     <select id="timeRange">
+    <option value="-5m">Last 5 minutes</option>
+    <option value="-30m">Last 30 minutes</option>
+    <option value="-1h">Last 1 hour</option>
+</select>
+<div style="width: 900px; height: 400px;">
+    <canvas id="myChart"></canvas>
+</div>
+
+    <canvas id="myChart"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const ctx = document.getElementById("myChart");
+
+        const myChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: "Temperature",
+                    data: [],
+                    borderWidth: 2
+                },
+                {
+                    label: "Humidity",
+                    data: [],
+                    borderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    function loadChartData() {
+    const range = document.getElementById("timeRange").value;
+
+    fetch(`/monitoring_data/?range=${range}`)
+        .then(response => response.json())
+        .then(data => {
+            myChart.data.labels = data.labels;
+            myChart.data.datasets[0].data = data.temperature;
+            myChart.data.datasets[1].data = data.humidity;
+            myChart.update();
+        });
+}
+
+    document.getElementById("timeRange").addEventListener("change", () => {
+    loadChartData();
+});
+
+    loadChartData();
+
+    //setInterval(loadChartData, 5000);
+    </script>
+</body>
+</html>
+{% endblock %}

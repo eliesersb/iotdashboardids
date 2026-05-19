@@ -1,0 +1,373 @@
+{% extends 'iotdashboard/base.html' %}
+{% block title %}Maintenance
+
+
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+
+            if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+
+    return cookieValue;
+}
+
+function clearAllInfluxData() {
+    const confirmation = confirm(
+        "Yakin ingin mereset seluruh data dashboard?\n\nData yang akan dihapus:\n- protocol_metrics\n- snort_alerts\n\nFile alert_fast.txt tidak ikut dihapus dari tombol ini."
+    );
+
+    if (!confirmation) {
+        return;
+    }
+
+    fetch("{% url 'clear_all_influx_data' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "Content-Type": "application/json"
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message || "Data dashboard berhasil direset.");
+        location.reload();
+    })
+    .catch(error => {
+        alert("Gagal mereset data dashboard.");
+        console.error(error);
+    });
+}
+</script>
+
+{% endblock %}
+
+{% block content %}
+<style>
+    .page-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+        color: #6b7280;
+        font-size: 16px;
+        margin-bottom: 24px;
+    }
+
+    .maintenance-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+        margin-top: 20px;
+    }
+
+    .maintenance-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+        border-left: 5px solid #ef4444;
+    }
+
+    .maintenance-card h3 {
+        font-size: 22px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 10px;
+    }
+
+    .maintenance-card p {
+        color: #64748b;
+        font-size: 15px;
+        line-height: 1.6;
+        margin-bottom: 18px;
+    }
+
+    .danger-button {
+        background: #dc2626;
+        color: white;
+        border: none;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .danger-button:hover {
+        background: #b91c1c;
+    }
+
+    .warning-note {
+        background: #fff7ed;
+        color: #9a3412;
+        border-left: 5px solid #f97316;
+        padding: 14px 16px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+
+    .result-box {
+        margin-top: 20px;
+        padding: 14px 16px;
+        border-radius: 10px;
+        display: none;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .result-success {
+        display: block;
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .result-error {
+        display: block;
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    @media (max-width: 992px) {
+        .maintenance-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+
+.maintenance-warning {
+    margin: 16px 0 20px 0;
+    padding: 14px 18px;
+    border-left: 5px solid #f97316;
+    background: #fff7ed;
+    color: #7c2d12;
+    border-radius: 10px;
+    line-height: 1.6;
+}
+
+.maintenance-grid.single-reset {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.maintenance-card {
+    background: #ffffff;
+    border-left: 5px solid #dc2626;
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.maintenance-card h3 {
+    margin-bottom: 10px;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.maintenance-card p {
+    color: #475569;
+    line-height: 1.7;
+    margin-bottom: 18px;
+}
+
+.danger-btn {
+    background: #dc2626;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.danger-btn:hover {
+    background: #b91c1c;
+}
+
+.maintenance-info {
+    margin-top: 18px;
+    padding: 14px 18px;
+    background: #eff6ff;
+    border-left: 5px solid #2563eb;
+    border-radius: 10px;
+    color: #1e3a8a;
+}
+
+.maintenance-info code {
+    background: #dbeafe;
+    padding: 3px 6px;
+    border-radius: 5px;
+}
+
+
+</style>
+
+
+<div class="page-title">Maintenance Tools 🛠️</div>
+<div class="page-subtitle">
+    Halaman ini digunakan untuk membersihkan data pengujian dashboard sebelum skenario baru dijalankan.
+</div>
+
+<div class="maintenance-warning">
+    Tombol reset hanya menghapus data dashboard di InfluxDB, yaitu <b>protocol_metrics</b> dan <b>snort_alerts</b>.
+    Tombol ini tidak menghapus script simulator, konfigurasi Telegraf, rules Snort, atau file log Snort <b>alert_fast.txt</b>.
+</div>
+
+<div class="maintenance-grid single-reset">
+    <div class="maintenance-card reset-all-card">
+        <h3>Reset All Dashboard Data</h3>
+        <p>
+            Menghapus seluruh data utama pengujian dari InfluxDB, yaitu data traffic aplikasi 
+            (<b>protocol_metrics</b>) dan data alert IDS Snort (<b>snort_alerts</b>). 
+            Gunakan tombol ini sebelum memulai skenario pengujian baru agar hasil dashboard tidak tercampur dengan data lama.
+        </p>
+
+        <button class="danger-btn reset-all-btn" onclick="clearAllInfluxData()">
+            Reset All Dashboard Data
+        </button>
+    </div>
+</div>
+
+<div class="maintenance-info">
+    <b>Catatan reset penuh:</b> Untuk mengosongkan file log Snort <b>alert_fast.txt</b> juga, gunakan script terminal:
+    <code>./reset_test_data.sh</code>
+</div>
+<script>
+    function getCSRFToken() {
+        const cookies = document.cookie.split(";");
+
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+
+            if (cookie.startsWith("csrftoken=")) {
+                return cookie.substring("csrftoken=".length);
+            }
+        }
+
+        return "";
+    }
+
+    function showResult(success, message) {
+        const resultBox = document.getElementById("resultBox");
+        resultBox.textContent = message;
+
+        resultBox.classList.remove("result-success", "result-error");
+
+        if (success) {
+            resultBox.classList.add("result-success");
+        } else {
+            resultBox.classList.add("result-error");
+        }
+    }
+
+    function postClear(url) {
+        return fetch(url, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCSRFToken(),
+                "Content-Type": "application/json"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            showResult(data.success, data.message);
+        })
+        .catch(error => {
+            showResult(false, "Terjadi error saat menjalankan maintenance action.");
+            console.error(error);
+        });
+    }
+
+    function clearProtocolMetrics() {
+        const confirmed = confirm(
+            "Yakin ingin menghapus semua data protocol_metrics dari InfluxDB?\n\nData monitoring protocol akan kosong sampai data baru masuk lagi."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        postClear("/maintenance/clear_protocol_metrics/");
+    }
+
+    function clearSnortAlerts() {
+        const confirmed = confirm(
+            "Yakin ingin menghapus semua data snort_alerts dari InfluxDB?\n\nRules Snort tidak akan terhapus, hanya data alert di database dashboard yang dihapus."
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        postClear("/maintenance/clear_snort_alerts/");
+    }
+</script>
+
+
+
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+
+            if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+
+    return cookieValue;
+}
+
+function clearAllInfluxData() {
+    const confirmation = confirm(
+        "Yakin ingin mereset seluruh data dashboard?\n\nData yang akan dihapus:\n- protocol_metrics\n- snort_alerts\n\nFile alert_fast.txt tidak ikut dihapus dari tombol ini."
+    );
+
+    if (!confirmation) {
+        return;
+    }
+
+    fetch("{% url 'clear_all_influx_data' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "Content-Type": "application/json"
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message || "Data dashboard berhasil direset.");
+        location.reload();
+    })
+    .catch(error => {
+        alert("Gagal mereset data dashboard.");
+        console.error(error);
+    });
+}
+</script>
+
+{% endblock %}

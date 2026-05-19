@@ -1,0 +1,222 @@
+services:
+  mqtt_broker:
+    image: eclipse-mosquitto:latest
+    container_name: mqtt_broker
+    restart: always
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto_config/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto_config/config/password_file:/mosquitto/config/password_file
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+    networks:
+      - iot-net
+
+  rest_api:
+    build:
+      context: .
+      dockerfile: Dockerfile.rest
+    container_name: rest_api
+    restart: always
+    ports:
+      - "5000:5000"
+    networks:
+      - iot-net
+
+  coap_server:
+    build:
+      context: .
+      dockerfile: Dockerfile.coap
+    container_name: coap_server
+    restart: always
+    ports:
+      - "5683:5683/udp"
+    networks:
+      - iot-net
+
+  grpc_server:
+    build:
+      context: .
+      dockerfile: Dockerfile.grpc
+    container_name: grpc_server
+    restart: always
+    ports:
+      - "50051:50051"
+    networks:
+      - iot-net
+
+  snort_mqtt:
+    image: ciscotalos/snort3:latest
+    container_name: snort_mqtt
+    restart: always
+    depends_on:
+      - mqtt_broker
+    network_mode: "service:mqtt_broker"
+    user: "0:0"
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./snort/snort.lua:/usr/local/etc/snort/snort.lua:ro
+      - ./snort/rules:/usr/local/etc/snort/rules:ro
+      - ./snort/log:/var/log/snort
+    entrypoint:
+      [
+        "/home/snorty/snort3/bin/snort",
+        "-c", "/usr/local/etc/snort/snort.lua",
+        "-i", "eth0",
+        "--daq", "afpacket",
+        "-A", "alert_fast",
+        "-l", "/var/log/snort",
+        "-k", "none"
+      ]
+
+  snort_rest:
+    image: ciscotalos/snort3:latest
+    container_name: snort_rest
+    restart: always
+    depends_on:
+      - rest_api
+    network_mode: "service:rest_api"
+    user: "0:0"
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./snort/snort.lua:/usr/local/etc/snort/snort.lua:ro
+      - ./snort/rules:/usr/local/etc/snort/rules:ro
+      - ./snort/log:/var/log/snort
+    entrypoint:
+      [
+        "/home/snorty/snort3/bin/snort",
+        "-c", "/usr/local/etc/snort/snort.lua",
+        "-i", "eth0",
+        "--daq", "afpacket",
+        "-A", "alert_fast",
+        "-l", "/var/log/snort",
+        "-k", "none"
+      ]
+
+  snort_coap:
+    image: ciscotalos/snort3:latest
+    container_name: snort_coap
+    restart: always
+    depends_on:
+      - coap_server
+    network_mode: "service:coap_server"
+    user: "0:0"
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./snort/snort.lua:/usr/local/etc/snort/snort.lua:ro
+      - ./snort/rules:/usr/local/etc/snort/rules:ro
+      - ./snort/log:/var/log/snort
+    entrypoint:
+      [
+        "/home/snorty/snort3/bin/snort",
+        "-c", "/usr/local/etc/snort/snort.lua",
+        "-i", "eth0",
+        "--daq", "afpacket",
+        "-A", "alert_fast",
+        "-l", "/var/log/snort",
+        "-k", "none"
+      ]
+
+  snort_grpc:
+    image: ciscotalos/snort3:latest
+    container_name: snort_grpc
+    restart: always
+    depends_on:
+      - grpc_server
+    network_mode: "service:grpc_server"
+    user: "0:0"
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./snort/snort.lua:/usr/local/etc/snort/snort.lua:ro
+      - ./snort/rules:/usr/local/etc/snort/rules:ro
+      - ./snort/log:/var/log/snort
+    entrypoint:
+      [
+        "/home/snorty/snort3/bin/snort",
+        "-c", "/usr/local/etc/snort/snort.lua",
+        "-i", "eth0",
+        "--daq", "afpacket",
+        "-A", "alert_fast",
+        "-l", "/var/log/snort",
+        "-k", "none"
+      ]
+
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    restart: always
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=${INFLUXDB_DB}
+      - INFLUXDB_USER=${INFLUXDB_USER}
+      - INFLUXDB_USER_PASSWORD=${INFLUXDB_PASSWORD}
+    volumes:
+      - influxdb-data:/var/lib/influxdb
+    networks:
+      - iot-net
+
+  telegraf:
+    image: telegraf:latest
+    container_name: telegraf
+    restart: always
+    depends_on:
+      - influxdb
+      - mqtt_broker
+      - rest_api
+      - coap_server
+      - grpc_server
+    ports:
+      - "8186:8186"
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - ./snort/log:/var/log/snort
+    networks:
+      - iot-net
+
+
+  django_app:
+    build:
+      context: ./django
+      dockerfile: Dockerfile
+    container_name: django_app
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./django:/app
+    depends_on:
+      - influxdb
+    environment:
+      - INFLUXDB_HOST=${INFLUXDB_HOST}
+      - INFLUXDB_PORT=${INFLUXDB_PORT}
+      - INFLUXDB_DATABASE=${INFLUXDB_DB}
+      - INFLUXDB_USERNAME=${INFLUXDB_USER}
+      - INFLUXDB_PASSWORD=${INFLUXDB_PASSWORD}    
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    networks:
+      - iot-net
+
+
+volumes:
+  influxdb-data:
+  mosquitto-data:
+  mosquitto-log:
+
+networks:
+  iot-net:

@@ -1,0 +1,435 @@
+{% extends 'iotdashboard/base.html' %}
+{% block title %}Monitoring{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    .page-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+        color: #6b7280;
+        font-size: 17px;
+        margin-bottom: 20px;
+    }
+
+    .filter-bar {
+        margin-bottom: 24px;
+    }
+
+    .filter-bar select {
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid #d1d5db;
+        background: white;
+        font-size: 15px;
+    }
+
+    .monitoring-meta {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 8px;
+    margin-bottom: 14px;
+    }
+
+    .monitoring-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+    }
+
+    .monitoring-summary-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    border-left: 4px solid #3b82f6;
+    }
+
+    .monitoring-summary-card h4 {
+    font-size: 14px;
+    color: #475569;
+    margin-bottom: 8px;
+    }
+
+    .monitoring-summary-card p {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+    }
+
+    .monitoring-summary-card small {
+    color: #64748b;
+    font-size: 12px;
+    }
+
+    .monitoring-insight {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    border-left: 5px solid;
+    color: #334155;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    }
+
+    .insight-normal {
+    border-left-color: #10b981;
+    }
+
+    .insight-warning {
+    border-left-color: #f59e0b;
+    }
+
+    .insight-alert {
+    border-left-color: #ef4444;
+    }
+
+    .chart-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+
+    .chart-box {
+        background: white;
+        border-radius: 16px;
+        padding: 22px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    }
+
+    .chart-title {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #111827;
+    }
+
+    .chart-subtitle {
+        font-size: 15px;
+        color: #6b7280;
+        margin-bottom: 18px;
+    }
+
+    .chart-wrapper {
+        position: relative;
+        height: 320px;
+    }
+
+    @media (max-width: 992px) {
+        .chart-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+
+    .data-source-note {
+    margin: 12px 0 16px 0;
+    padding: 14px 18px;
+    border-left: 5px solid #2563eb;
+    background: #eff6ff;
+    color: #1f2937;
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1.6;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05);
+}
+
+.data-source-note b {
+    color: #1e40af;
+}</style>
+
+<div class="page-title">Performance & Traffic Monitoring 📈</div>
+<div class="page-subtitle">
+    Visualisasi utama untuk memantau request rate, latency, throughput, dan alert
+    pada protokol MQTT, REST API, CoAP, dan gRPC.
+</div>
+
+<div class="filter-bar">
+    
+<div class="data-source-note">
+    <b>Keterangan:</b> grafik performa menampilkan aktivitas request aplikasi, sedangkan <b>IDS Alerts</b> menampilkan serangan yang berhasil dideteksi oleh Snort, termasuk pengujian hping3.
+</div>
+
+<select id="timeRange">
+        <option value="-5m">Last 5 minutes</option>
+        <option value="-30m">Last 30 minutes</option>
+        <option value="-1h">Last 1 hour</option>
+    </select>
+
+    <div class="monitoring-meta">
+        Last updated: <span id="lastUpdated">-</span>
+    </div>
+</div>
+
+<div class="monitoring-summary-grid">
+    <div class="monitoring-summary-card">
+        <h4>Peak Request Rate</h4>
+        <p id="peakRequestRate">-</p>
+        <small>Highest application requests per 10s</small>
+    </div>
+
+    <div class="monitoring-summary-card">
+        <h4>Highest Latency</h4>
+        <p id="highestLatency">-</p>
+        <small>Maximum latency in selected range</small>
+    </div>
+
+    <div class="monitoring-summary-card">
+        <h4>Highest Throughput</h4>
+        <p id="highestThroughput">-</p>
+        <small>Maximum application payload per 10s</small>
+    </div>
+
+    <div class="monitoring-summary-card">
+        <h4>IDS Alerts</h4>
+        <p id="totalAlerts">-</p>
+        <small>Snort IDS alerts in selected range</small>
+    </div>
+</div>
+
+    <div id="monitoringInsight" class="monitoring-insight insight-normal">
+    <strong>Ringkasan Monitoring:</strong>
+    <span id="monitoringInsightText">-</span>
+</div>
+
+<div class="chart-grid">
+    <div class="chart-box">
+        <div class="chart-title">Request Rate Trend</div>
+        <div class="chart-subtitle">
+            Menampilkan jumlah request yang diterima setiap interval 10 detik untuk masing-masing protokol.
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="requestRateChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-box">
+        <div class="chart-title">Latency Trend</div>
+        <div class="chart-subtitle">
+            Menampilkan rata-rata latency setiap interval 10 detik untuk masing-masing protokol.
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="latencyChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-box">
+        <div class="chart-title">Throughput Trend</div>
+        <div class="chart-subtitle">
+           Menampilkan total ukuran payload yang dikirim setiap interval 10 detik untuk masing-masing protokol.
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="throughputChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-box">
+        <div class="chart-title">IDS Alert Timeline</div>
+        <div class="chart-subtitle">
+            Menampilkan jumlah alert IDS Snort yang terdeteksi setiap interval 10 detik.
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="alertTimelineChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    const requestRateCtx = document.getElementById("requestRateChart");
+    const latencyCtx = document.getElementById("latencyChart");
+    const throughputCtx = document.getElementById("throughputChart");
+    const alertTimelineCtx = document.getElementById("alertTimelineChart");
+
+    const commonLineOptions = {
+        responsive: true,
+        maintainAspectRatio: false
+    };
+
+    const requestRateChart = new Chart(requestRateCtx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [
+                { label: "MQTT", data: [], borderColor: "#3b82f6", borderWidth: 2, tension: 0.3 },
+                { label: "REST API", data: [], borderColor: "#10b981", borderWidth: 2, tension: 0.3 },
+                { label: "CoAP", data: [], borderColor: "#f59e0b", borderWidth: 2, tension: 0.3 },
+                { label: "gRPC", data: [], borderColor: "#ef4444", borderWidth: 2, tension: 0.3 }
+            ]
+        },
+        options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Request / 10s'
+                }
+            }
+        }   
+    }
+}); 
+
+    const latencyChart = new Chart(latencyCtx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [
+                { label: "MQTT", data: [], borderColor: "#3b82f6", borderWidth: 2, tension: 0.3 },
+                { label: "REST API", data: [], borderColor: "#10b981", borderWidth: 2, tension: 0.3 },
+                { label: "CoAP", data: [], borderColor: "#f59e0b", borderWidth: 2, tension: 0.3 },
+                { label: "gRPC", data: [], borderColor: "#ef4444", borderWidth: 2, tension: 0.3 }
+            ]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                type: "logarithmic",
+                min: 0.01,
+                title: {
+                    display: true,
+                    text: "Latency (ms)"
+                }
+            }
+        }
+    }
+});
+
+    const throughputChart = new Chart(throughputCtx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [
+                { label: "MQTT", data: [], borderColor: "#3b82f6", borderWidth: 2, tension: 0.3 },
+                { label: "REST API", data: [], borderColor: "#10b981", borderWidth: 2, tension: 0.3 },
+                { label: "CoAP", data: [], borderColor: "#f59e0b", borderWidth: 2, tension: 0.3 },
+                { label: "gRPC", data: [], borderColor: "#ef4444", borderWidth: 2, tension: 0.3 }
+            ]
+        },
+        options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: "Throughput (KiB / 10s)"
+                }
+            }
+        }
+    }
+});
+
+    const alertTimelineChart = new Chart(alertTimelineCtx, {
+        type: "bar",
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: "Alert Count",
+                    data: [],
+                    backgroundColor: "#dc2626"
+                }
+            ]
+        },
+        options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: "Alerts Count"
+                }
+            }
+        }
+    }
+});
+
+    function toLogScaleData(values) {
+    return values.map(v => v === 0 ? null : v);
+    }
+
+    function loadMonitoringData() {
+        const range = document.getElementById("timeRange").value;
+
+        fetch(`/monitoring_data/?range=${range}`)
+            .then(response => response.json())
+            .then(data => {
+                const insightBox = document.getElementById("monitoringInsight");
+                const insightText = document.getElementById("monitoringInsightText");
+
+                if (data.insight) {
+                    insightText.textContent = data.insight.message;
+
+                    insightBox.classList.remove("insight-normal", "insight-warning", "insight-alert");
+
+                    if (data.insight.level === "alert") {
+                        insightBox.classList.add("insight-alert");
+                    } else if (data.insight.level === "warning") {
+                        insightBox.classList.add("insight-warning");
+                    } else {
+                        insightBox.classList.add("insight-normal");
+                    }
+                }
+
+                // labels
+                requestRateChart.data.labels = data.labels;
+                latencyChart.data.labels = data.labels;
+                throughputChart.data.labels = data.labels;
+                alertTimelineChart.data.labels = data.labels;
+                
+                 // summary cards
+                document.getElementById("peakRequestRate").textContent = data.summary.peak_request_rate;
+                document.getElementById("highestLatency").textContent = data.summary.highest_latency;
+                document.getElementById("highestThroughput").textContent = data.summary.highest_throughput;
+                document.getElementById("totalAlerts").textContent = data.summary.total_alerts;
+                
+                // last updated
+                document.getElementById("lastUpdated").textContent = data.last_updated;
+                
+                // request rate
+                requestRateChart.data.datasets[0].data = data.request_rate.mqtt;
+                requestRateChart.data.datasets[1].data = data.request_rate.rest;
+                requestRateChart.data.datasets[2].data = data.request_rate.coap;
+                requestRateChart.data.datasets[3].data = data.request_rate.grpc;
+
+                // latency
+                latencyChart.data.datasets[0].data = toLogScaleData(data.latency.mqtt);
+                latencyChart.data.datasets[1].data = toLogScaleData(data.latency.rest);
+                latencyChart.data.datasets[2].data = toLogScaleData(data.latency.coap);
+                latencyChart.data.datasets[3].data = toLogScaleData(data.latency.grpc);
+
+                // throughput
+                throughputChart.data.datasets[0].data = data.throughput.mqtt;
+                throughputChart.data.datasets[1].data = data.throughput.rest;
+                throughputChart.data.datasets[2].data = data.throughput.coap;
+                throughputChart.data.datasets[3].data = data.throughput.grpc;
+
+                // alert
+                alertTimelineChart.data.datasets[0].data = data.alert_timeline;
+
+                requestRateChart.update();
+                latencyChart.update();
+                throughputChart.update();
+                alertTimelineChart.update();
+            })
+            .catch(error => console.error("Error loading monitoring data:", error));
+    }
+
+    document.getElementById("timeRange").addEventListener("change", loadMonitoringData);
+
+    loadMonitoringData();
+    setInterval(loadMonitoringData, 5000);
+</script>
+{% endblock %}
