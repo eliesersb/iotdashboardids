@@ -420,3 +420,5 @@ Project ini sudah difinalisasi dengan dashboard utama berbasis **Django + Chart.
 ## Lisensi
 
 Project ini dibuat untuk kebutuhan Tugas Akhir dan pengujian sistem monitoring keamanan jaringan IoT berbasis container.
+
+README format verified.
