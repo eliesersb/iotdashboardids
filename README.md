@@ -2,7 +2,7 @@
 
 Project ini merupakan sistem dashboard monitoring keamanan jaringan IoT berbasis container dengan integrasi Intrusion Detection System (IDS). Sistem ini digunakan untuk memantau traffic normal dan traffic serangan pada beberapa protokol IoT, yaitu MQTT, REST API, CoAP, dan gRPC.
 
-Dashboard final menggunakan **Django + Chart.js** sebagai visualisasi utama. Data traffic aplikasi disimpan pada InfluxDB melalui measurement `protocol_metrics`, sedangkan data alert IDS dari Snort disimpan pada measurement `snort_alerts`.
+Dashboard final menggunakan **Django + Chart.js** sebagai visualisasi utama. Data traffic aplikasi disimpan pada InfluxDB melalui measurement `protocol_metrics`, sedangkan data alert IDS dari Snort IDS disimpan pada measurement `snort_alerts`.
 
 ## Ringkasan Sistem
 
@@ -273,9 +273,9 @@ Cek detail alert:
 SELECT * FROM "snort_alerts" WHERE time > now() - 15m LIMIT 20
 ```
 
-## Validasi Log Snort
+## Validasi Log Snort IDS
 
-Cek log Snort dari host:
+Cek log Snort IDS dari host:
 
 ```bash
 sudo tail -n 30 snort/log/alert_fast.txt
@@ -287,7 +287,7 @@ Cek log secara realtime:
 sudo tail -f snort/log/alert_fast.txt
 ```
 
-Cek log container Snort:
+Cek log container Snort IDS:
 
 ```bash
 docker logs -f snort_mqtt
@@ -335,7 +335,7 @@ Urutan pengujian final:
 | CoAP hping3 | Valid, terbaca sebagai CoAP UDP Flood / hping3 |
 | gRPC hping3 | Valid, dapat muncul sebagai gRPC Application Flood dan gRPC TCP SYN Flood / hping3 |
 
-Perbedaan klasifikasi tersebut bukan error besar, melainkan karakteristik deteksi Snort berdasarkan pola traffic, port, dan protokol.
+Perbedaan klasifikasi tersebut bukan error besar, melainkan karakteristik deteksi Snort IDS berdasarkan pola traffic, port, dan protokol.
 
 ## Troubleshooting
 
@@ -360,7 +360,7 @@ USE iot_data
 SHOW MEASUREMENTS
 ```
 
-### Alert Snort tidak muncul
+### Alert Snort IDS tidak muncul
 
 ```bash
 sudo tail -f snort/log/alert_fast.txt
@@ -378,15 +378,6 @@ docker compose ps
 ```
 
 Pastikan port `8000` aktif dan container `django_app` berjalan.
-
-### Grafana masih muncul di Docker
-
-Project final ini tidak menggunakan Grafana. Jika container Grafana lama masih muncul, hapus orphan container:
-
-```bash
-docker rm -f grafana
-docker compose up -d --remove-orphans
-```
 
 ## Deploy di Laptop Lain
 
@@ -424,7 +415,7 @@ Checklist deploy cloud:
 
 ## Status Project
 
-Project ini sudah difinalisasi dengan dashboard utama berbasis **Django + Chart.js** dan tidak lagi menggunakan Grafana sebagai dashboard final.
+Project ini sudah difinalisasi dengan dashboard utama berbasis **Django + Chart.js** sebagai dashboard final.
 
 ## Lisensi
 
