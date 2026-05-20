@@ -1,8 +1,8 @@
 {% extends 'iotdashboard/base.html' %}
-{% block title %}Maintenance
+{% block title %}Maintenance{% endblock %}
 
 
-
+{% block content %}
 <script>
 function getCookie(name) {
     let cookieValue = null;
@@ -51,9 +51,8 @@ function clearAllInfluxData() {
 }
 </script>
 
-{% endblock %}
 
-{% block content %}
+
 <style>
     .page-title {
         font-size: 32px;

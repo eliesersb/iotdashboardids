@@ -224,14 +224,29 @@ def overview_data(request):
         alert_proto_result = query_influx(q_alert_proto)
         protocol_alert_count = int(get_first_value(alert_proto_result, 0))
 
+        # Application-layer attack per protocol dari protocol_metrics
+        q_attack_proto = f"""
+        SELECT COUNT(request_count)
+        FROM protocol_metrics
+        WHERE time > now() - {status_range_time}
+        AND protocol = '{proto_key}'
+        AND traffic_type = 'attack'
+        """
+
+        attack_proto_result = query_influx(q_attack_proto)
+        protocol_attack_count = int(get_first_value(attack_proto_result, 0))
+
         # Status dan reason
         # Catatan:
-        # - Alert digunakan jika Snort mendeteksi alert pada protokol tersebut.
+        # - Under Attack digunakan jika Snort mendeteksi alert atau flood application-layer masuk.
         # - Normal digunakan jika hanya ada traffic normal atau tidak ada traffic terbaru.
         # - High request normal tidak langsung dianggap Warning agar tidak ambigu bagi user.
         if protocol_alert_count > 0:
             status = "Under Attack"
             reason = "IDS Snort detected attack traffic"
+        elif protocol_attack_count > 0:
+            status = "Under Attack"
+            reason = "Application flood traffic detected"
         elif request_count == 0:
             status = "Normal"
             reason = "No recent traffic"
@@ -300,9 +315,9 @@ def overview_data(request):
         }
     elif recent_attack_requests > 0:
         system_status = {
-            "label": "Suspicious",
-            "class": "warning",
-            "reason": "Terdapat traffic attack aplikasi dalam 60 detik terakhir, tetapi belum ada alert dari IDS Snort."
+            "label": "Under Attack",
+            "class": "alert",
+            "reason": "Traffic flood application-layer terdeteksi dalam 60 detik terakhir."
         }
     else:
         system_status = {
