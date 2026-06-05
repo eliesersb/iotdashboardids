@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 set -e
-echo "=== REST API Application Flood ==="
-echo "Press CTRL+C to stop if script runs unlimited."
-python3 rest_flood.py "$@"
+
+DURATION="${1:-15}"
+NETWORK="${NETWORK:-iotdashboardids_iot-net}"
+
+echo "[REST FLOOD] Running for ${DURATION}s on Docker network: ${NETWORK}"
+
+docker run --rm \
+  --network "${NETWORK}" \
+  -v "$PWD":/app \
+  -w /app \
+  python:3.10-slim \
+  sh -c "pip install -q -r requirements.txt && timeout ${DURATION} python rest_flood.py || true"

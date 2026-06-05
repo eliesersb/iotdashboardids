@@ -18,7 +18,7 @@ args = parser.parse_args()
 # ============================
 # CONFIG
 # ============================
-BASE_URI = "coap://localhost:5683/sensor/temp"
+BASE_URI = "coap://coap_server:5683/sensor/temp"
 
 RATE = args.rate
 DURATION = args.duration

@@ -421,3 +421,171 @@ Project ini sudah difinalisasi dengan dashboard utama berbasis **Django + Chart.
 
 Project ini dibuat untuk kebutuhan Tugas Akhir dan pengujian sistem monitoring keamanan jaringan IoT berbasis container.
 
+
+
+---
+
+## Final Deployment dan Alur Pengujian
+
+Bagian ini digunakan untuk menjalankan sistem pada laptop baru, laptop kosong, atau cloud/VPS.
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/eliesersb/iotdashboardids.git
+cd iotdashboardids
+```
+
+### 2. Siapkan File Environment
+
+```bash
+cp .env.example .env
+```
+
+Isi konfigurasi Telegram pada file `.env`:
+
+```text
+TELEGRAM_BOT_TOKEN=isi_token_bot_telegram
+TELEGRAM_CHAT_ID=isi_chat_id_telegram
+```
+
+Jika Telegram tidak digunakan, sistem utama tetap dapat berjalan, tetapi notifikasi Telegram tidak akan terkirim.
+
+### 3. Jalankan Sistem
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+Dashboard dapat dibuka melalui:
+
+```text
+http://localhost:8000/
+```
+
+### 4. Menjalankan Normal Client
+
+Normal client dapat dijalankan langsung dari WSL atau terminal lokal:
+
+```bash
+python3 rest_client.py
+python3 mqtt_client.py
+python3 coap_client.py
+python3 grpc_client.py
+```
+
+Normal traffic akan masuk ke InfluxDB dan ditampilkan pada dashboard.
+
+### 5. Menjalankan Application Flood
+
+Application flood dijalankan melalui Docker network agar target service stabil. Default durasi adalah 15 detik.
+
+```bash
+./scripts/run_flood_rest.sh
+./scripts/run_flood_mqtt.sh
+./scripts/run_flood_coap.sh
+./scripts/run_flood_grpc.sh
+```
+
+Durasi dapat diubah, contoh:
+
+```bash
+./scripts/run_flood_rest.sh 30
+```
+
+Target internal Docker:
+
+```text
+REST  -> http://rest_api:5000
+MQTT  -> mqtt_broker:1883
+CoAP  -> coap://coap_server:5683/sensor/temp
+gRPC  -> grpc_server:50051
+```
+
+### 6. Menjalankan hping3 Ringan
+
+hping3 dijalankan melalui Docker network dengan nama service sebagai target. Default durasi 10 detik, default interval u10000, dan tidak menggunakan --flood.
+
+```bash
+./scripts/hping3_rest.sh
+./scripts/hping3_mqtt.sh
+./scripts/hping3_coap.sh
+./scripts/hping3_grpc.sh
+```
+
+Durasi dapat diubah:
+
+```bash
+./scripts/hping3_rest.sh 15
+```
+
+Interval dapat diubah:
+
+```bash
+INTERVAL=u20000 ./scripts/hping3_rest.sh 10
+```
+
+Catatan penting:
+
+```text
+Jangan menggunakan hping3 --flood untuk demo biasa.
+Mode --flood dapat menghasilkan alert sangat besar, membuat file log membengkak, dan dashboard menjadi lambat.
+Gunakan runner hping3 ringan untuk pengujian normal, demo, dan validasi TA.
+```
+
+### 7. Reset Data Pengujian
+
+Gunakan reset ini sebelum pengujian resmi agar data bersih:
+
+```bash
+docker exec influxdb influx -database iot_data -execute 'DROP MEASUREMENT protocol_metrics'
+docker exec influxdb influx -database iot_data -execute 'DROP MEASUREMENT snort_alerts'
+: > snort/log/alert_fast.txt
+chmod 777 snort/log/alert_fast.txt
+docker compose restart telegraf django_app
+```
+
+### 8. Validasi InfluxDB
+
+```bash
+docker exec influxdb influx -database iot_data -execute 'SHOW MEASUREMENTS'
+docker exec influxdb influx -database iot_data -execute 'SELECT * FROM protocol_metrics ORDER BY time DESC LIMIT 10'
+docker exec influxdb influx -database iot_data -execute 'SELECT * FROM snort_alerts ORDER BY time DESC LIMIT 10'
+```
+
+### 9. Validasi Snort Log
+
+```bash
+tail -20 snort/log/alert_fast.txt
+```
+
+Alert yang diharapkan:
+
+```text
+MQTT Application Flood Detected
+REST Flood Detected
+COAP Application Flood Detected
+gRPC Application Flood Detected
+MQTT TCP SYN Flood / hping3 Detected
+REST TCP SYN Flood / hping3 Detected
+COAP UDP Flood / hping3 Detected
+gRPC TCP SYN Flood / hping3 Detected
+```
+
+Pada pengujian gRPC, alert application flood juga dapat muncul ketika trafik ke port 50051 tinggi. Hal tersebut masih wajar selama alert hping3 gRPC juga terdeteksi.
+
+### 10. Validasi Dashboard dan Telegram
+
+Setelah normal client, application flood, atau hping3 dijalankan, cek:
+
+```text
+1. Dashboard berubah dari Normal menjadi Under Attack
+2. Grafik protocol metrics bertambah
+3. Alert muncul pada panel dashboard
+4. Notifikasi popup dashboard muncul
+5. Telegram menerima alert
+6. Data masuk ke InfluxDB
+7. Log Snort bertambah
+```
+

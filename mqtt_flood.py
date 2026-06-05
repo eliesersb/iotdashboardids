@@ -18,7 +18,7 @@ args = parser.parse_args()
 # ============================
 # CONFIG
 # ============================
-BROKER = "localhost"
+BROKER = "mqtt_broker"
 PORT = 1883
 TOPIC = "sensor/temp"
 

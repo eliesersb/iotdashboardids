@@ -20,7 +20,7 @@ args = parser.parse_args()
 # ============================
 # CONFIG
 # ============================
-BASE_URL = "http://localhost:5000"
+BASE_URL = "http://rest_api:5000"
 ENDPOINT = "/sensor/temp"
 URL = f"{BASE_URL}{ENDPOINT}"
 
