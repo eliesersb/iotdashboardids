@@ -220,10 +220,10 @@ bash scripts/hping3_grpc.sh
 Command manual:
 
 ```bash
-sudo timeout 20 hping3 -S --flood -p 1883 127.0.0.1
-sudo timeout 20 hping3 -S --flood -p 5000 127.0.0.1
-sudo timeout 20 hping3 --udp --flood -p 5683 127.0.0.1
-sudo timeout 20 hping3 -S --flood -p 50051 127.0.0.1
+./scripts/hping3_mqtt.sh
+./scripts/hping3_rest.sh
+./scripts/hping3_coap.sh
+./scripts/hping3_grpc.sh
 ```
 
 Target port:
