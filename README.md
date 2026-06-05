@@ -589,3 +589,24 @@ Setelah normal client, application flood, atau hping3 dijalankan, cek:
 7. Log Snort bertambah
 ```
 
+---
+
+## Catatan Permission Snort Log Setelah Clone Baru
+
+Jika alert Snort tidak muncul di dashboard atau Telegram setelah clone baru, pastikan permission folder `snort/log` sudah terbuka agar Telegraf dapat membaca file `alert_fast.txt`.
+
+Jalankan command berikut:
+
+```bash
+mkdir -p snort/log
+touch snort/log/alert_fast.txt
+sudo chmod -R 777 snort/log
+docker compose restart telegraf django_app
+```
+
+Untuk startup yang lebih aman, gunakan script berikut:
+
+```bash
+./scripts/start_all.sh
+```
+
