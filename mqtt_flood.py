@@ -2,6 +2,7 @@ import argparse
 import json
 import random
 import time
+import os
 
 import paho.mqtt.client as mqtt
 
@@ -18,7 +19,7 @@ args = parser.parse_args()
 # ============================
 # CONFIG
 # ============================
-BROKER = "mqtt_broker"
+BROKER = os.getenv("MQTT_BROKER", "mqtt_broker")
 PORT = 1883
 TOPIC = "sensor/temp"
 

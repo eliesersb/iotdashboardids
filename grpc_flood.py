@@ -3,6 +3,7 @@ import random
 import time
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
+import os
 
 import grpc
 
@@ -23,7 +24,7 @@ args = parser.parse_args()
 # ============================
 # CONFIG
 # ============================
-GRPC_TARGET = "grpc_server:50051"
+GRPC_TARGET = os.getenv("GRPC_TARGET", "grpc_server:50051")
 
 RATE = args.rate
 DURATION = args.duration

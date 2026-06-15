@@ -213,10 +213,28 @@ services:
       - iot-net
 
 
+  attacker:
+    build:
+      context: .
+      dockerfile: Dockerfile.attacker
+    container_name: attacker
+    profiles:
+      - tools
+    networks:
+      - iot-net
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    stdin_open: true
+    tty: true
+
 volumes:
   influxdb-data:
   mosquitto-data:
   mosquitto-log:
+
+
+
 
 networks:
   iot-net:
