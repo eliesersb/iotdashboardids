@@ -609,4 +609,103 @@ Untuk startup yang lebih aman, gunakan script berikut:
 ```bash
 ./scripts/start_all.sh
 ```
+---
+
+## Demo Final dengan Docker Attacker
+
+Pada versi final, pengujian attack direkomendasikan menggunakan Docker attacker. Container attacker berada pada Docker network yang sama dengan service MQTT, REST API, CoAP, gRPC, dan Snort IDS. Dengan pendekatan ini, trafik pengujian tetap berada di jaringan container yang dipantau oleh Snort, sehingga lebih stabil untuk laptop kosong maupun deployment cloud/VPS.
+
+Docker attacker tidak berjalan otomatis bersama service utama. Container ini hanya digunakan sebagai tools pengujian melalui profile tools.
+
+### 1. Menjalankan Sistem Utama
+
+Jalankan sistem utama terlebih dahulu:
+
+    ./scripts/start_all.sh
+
+Setelah proses selesai, pastikan seluruh container utama berstatus Up:
+
+    docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+Dashboard dapat diakses melalui:
+
+    http://localhost:8000/
+
+### 2. Build Docker Attacker
+
+Setelah sistem utama berjalan, build image attacker dengan command berikut:
+
+    docker compose --profile tools build attacker
+
+Image attacker dibuild dari file Dockerfile.attacker. Container attacker berisi kebutuhan pengujian seperti Python dependencies dan hping3, sehingga user tidak perlu menginstall tools attack secara manual di WSL.
+
+### 3. Menjalankan Attack Demo
+
+MQTT application flood:
+
+    ./scripts/demo/docker_mqtt_flood.sh 15
+
+gRPC application flood:
+
+    ./scripts/demo/docker_grpc_flood.sh 15
+
+REST hping3 controlled test:
+
+    ./scripts/demo/docker_rest_hping3.sh 15
+
+CoAP hping3 controlled test:
+
+    ./scripts/demo/docker_coap_hping3.sh 15
+
+Seluruh skenario attack demo juga dapat dijalankan sekaligus dengan:
+
+    ./scripts/demo/docker_attack_all.sh 15
+
+Angka 15 menunjukkan durasi pengujian selama 15 detik. Jika angka tidak ditulis, script akan menggunakan durasi default 15 detik.
+
+### 4. Validasi Hasil Attack
+
+Validasi dijalankan secara terpisah setelah attack selesai:
+
+    ./scripts/demo/docker_validate.sh
+
+Script validasi akan menampilkan status container, data terbaru protocol_metrics, ringkasan traffic, alert terbaru snort_alerts, dan log Snort terbaru pada snort/log/alert_fast.txt.
+
+### 5. Alur Demo yang Direkomendasikan
+
+Urutan demo yang direkomendasikan untuk video tutorial adalah:
+
+    ./scripts/demo/docker_mqtt_flood.sh 15
+    ./scripts/demo/docker_validate.sh
+
+    ./scripts/demo/docker_grpc_flood.sh 15
+    ./scripts/demo/docker_validate.sh
+
+    ./scripts/demo/docker_rest_hping3.sh 15
+    ./scripts/demo/docker_validate.sh
+
+    ./scripts/demo/docker_coap_hping3.sh 15
+    ./scripts/demo/docker_validate.sh
+
+Dengan alur ini, setiap skenario attack dapat divalidasi satu per satu melalui InfluxDB, Snort log, dashboard, dan Telegram.
+
+### 6. Catatan Penting
+
+1. Gunakan script pada folder scripts/demo/ untuk video tutorial dan pengujian laptop kosong.
+2. Jangan menjalankan hping3 manual dengan opsi --flood.
+3. Script hping3 pada demo menggunakan controlled test, bukan flood tidak terbatas.
+4. Attacker dijalankan melalui Docker network agar dapat mengakses service berdasarkan nama container seperti mqtt_broker, grpc_server, rest_api, dan coap_server.
+5. Pendekatan Docker attacker lebih cocok untuk deployment cloud/VPS karena tidak bergantung pada IP lokal laptop.
+6. Docker image publik tetap otomatis di-pull dari Docker Hub, sedangkan image custom termasuk attacker dibuild dari Dockerfile lokal yang tersedia di repository GitHub.
+
+### 7. Ringkasan Command Final
+
+    cd ~/iotdashboardids
+    cp .env.example .env
+    nano .env
+    ./scripts/start_all.sh
+    docker compose --profile tools build attacker
+    ./scripts/demo/docker_attack_all.sh 15
+    ./scripts/demo/docker_validate.sh
+
 
